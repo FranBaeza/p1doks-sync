@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Configs privadas
+config.json
+cookies.json
+token.json
+
+# Descargas
+downloads/
+
+# Logs
+*.log
