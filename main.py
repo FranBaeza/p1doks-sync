@@ -1,7 +1,7 @@
 import json
 import requests
-from pathlib import Path
-import time
+from downloader import download_packs
+from selection_engine import build_download_queue
 
 # Cargar config
 with open("config.json", "r", encoding="utf-8") as f:
@@ -84,108 +84,26 @@ print(f"\nTOTAL PACKS: {len(all_packs)}")
 # MOSTRAR TODOS LOS DATAPACKS
 # =========================
 
-#for pack in all_packs:
-#    print(
-#        f"{pack['Series']} | "
-#        f"{pack['Car']} | "
-#        f"{pack['Track']} | "
-#       f"{pack['id']}"
-#    )
-    
-    
-# =========================
-# DESCARGAR TODOS LOS ZIPS
-# =========================
-
-USER_ID = config["user_id"]
-
-downloads_path = Path("downloads")
-downloads_path.mkdir(exist_ok=True)
-
-download_url = "https://api.p1doks.com/api/files/download-all"
-
-
-for index, pack in enumerate(all_packs, start=1):
-
+for pack in all_packs:
     print(
-        f"\n[{index}/{len(all_packs)}] "
-        f"Descargando: "
         f"{pack['Series']} | "
         f"{pack['Car']} | "
-        f"{pack['Track']}"
+        f"{pack['Track']} | "
+        f"{pack['id']}"
     )
 
-    # Nombre ZIP local
-    filename = (
-        f"{pack['Series']}-"
-        f"{pack['Car']}-"
-        f"S{pack['Season']}"
-        f"W{pack['Week']}.zip"
-    )
+from selection import build_profile
 
-    # Limpiar caracteres problemáticos
-    filename = filename.replace("/", "-")
-    filename = filename.replace("\\", "-")
-    filename = filename.replace(":", "-")
-
-    zip_path = downloads_path / filename
-
-    # Saltar si ya existe
-    if zip_path.exists():
-        print("  -> Ya existe, saltando")
-        continue
-
-    # Payload descarga
-    download_payload = {
-        "userId": USER_ID,
-        "dataPackId": pack["id"],
-        "dataPackName": (
-            f"{pack['Series']}-"
-            f"{pack['Year']}-"
-            f"{pack['Car']}-"
-            f"Season_{pack['Season']}-"
-            f"Week_{pack['Week']}_"
-            f"{pack['Track']}"
-        )
-    }
-
-    # Request descarga
-    try:
-
-        response = requests.post(
-            download_url,
-            json=download_payload,
-            headers=headers,
-            timeout=60
-        )
-
-    except requests.exceptions.Timeout:
-        print("  -> TIMEOUT")
-        continue
-
-    except Exception as e:
-        print(f"  -> ERROR: {e}")
-        continue
-
-    if response.status_code == 401:
-        print("  -> TOKEN EXPIRADO")
-        break
-
-    if response.status_code == 504:
-        print("  -> SERVIDOR SATURADO")
-        continue
-
-    if response.status_code != 200:
-        print(f"  -> ERROR {response.status_code}")
-        continue
-
-    # Guardar ZIP
-    with open(zip_path, "wb") as f:
-        f.write(response.content)
-        
-    time.sleep(1)
+download_queue = build_profile(
+    all_packs,
+    config["download_profile"]
+)
     
-    print(f"  -> Guardado: {filename}")
+download_packs(
+    download_queue,
+    config,
+    headers
+)
     
 with open("all_packs.json", "w", encoding="utf-8") as f:
     json.dump(all_packs, f, indent=4)
