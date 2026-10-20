@@ -41,7 +41,7 @@ while True:
             "lap_hundredths"
         ]
     }
-
+    
     try:
 
         response = requests.post(
